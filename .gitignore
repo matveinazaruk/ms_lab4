@@ -2,6 +2,10 @@
 *.o
 *.ko
 
+*.mod.c
+*.order
+*.symvers
+
 # Libraries
 *.lib
 *.a
