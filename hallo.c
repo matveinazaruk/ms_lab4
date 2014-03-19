@@ -1,54 +1,121 @@
- 
-
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <asm/uaccess.h>
 #include <linux/cdev.h>
 #include <linux/proc_fs.h>
 #define MAX_PROC_SIZE 100
-static char proc_data[MAX_PROC_SIZE];
+
+static int a;
+static int b;
+static char operation[MAX_PROC_SIZE];
+static int result;
 
 static struct proc_dir_entry *proc_write_entry;
+static struct proc_dir_entry *proc_a_entry;
+static struct proc_dir_entry *proc_b_entry;
+static struct proc_dir_entry *proc_operation_entry;
+static struct proc_dir_entry *proc_result_entry;
 
-int read_proc(char *buf,char **start,off_t offset,int count,int *eof,void *data )
+int read_a(char *buf,char **start,off_t offset,int count,int *eof,void *data )
 {
-int len=0;
- len = sprintf(buf,"\n %s\n ",proc_data);
+	int len=0;
+	len = sprintf(buf,"\n %d\n ",a);
 
-return len;
+	return len;
 }
 
-int write_proc(struct file *file,const char *buf,int count,void *data )
+int write_a(struct file *file, const char *buf, int count, void *data )
+{
+	static char temp[MAX_PROC_SIZE];
+	if(count > MAX_PROC_SIZE)
+	    count = MAX_PROC_SIZE;
+	if(copy_from_user(temp, buf, count))
+	    return -EFAULT;
+	sscanf(temp, "%d", &a);
+
+	return count;
+
+}
+int read_b(char *buf,char **start,off_t offset,int count,int *eof,void *data )
+{	
+	int len=0;
+	len = sprintf(buf,"\n %d\n ",b);
+	
+	return len;
+}
+
+int write_b(struct file *file, const char *buf, int count, void *data )
+{
+	static char temp[MAX_PROC_SIZE];
+	if(count > MAX_PROC_SIZE)
+	    count = MAX_PROC_SIZE;
+	if(copy_from_user(temp, buf, count))
+	    return -EFAULT;
+
+	sscanf(temp, "%d", &b);
+	return count;
+
+}
+int read_operation(char *buf,char **start,off_t offset,int count,int *eof,void *data )
+{
+	int len=0;
+	len = sprintf(buf,"\n %s\n ",operation);
+
+	return len;
+}
+
+int write_operation(struct file *file, const char *buf, int count, void *data )
 {
 
-if(count > MAX_PROC_SIZE)
-    count = MAX_PROC_SIZE;
-if(copy_from_user(proc_data, buf, count))
-    return -EFAULT;
+	if(count > MAX_PROC_SIZE)
+	    count = MAX_PROC_SIZE;
+	if(copy_from_user(operation, buf, count))
+	    return -EFAULT;
 
-return count;
+	return count;
 }
 
 void create_new_proc_entry()
 {
-proc_write_entry = create_proc_entry("proc_entry",0666,NULL);
-if(!proc_write_entry)
-      {
-    printk(KERN_INFO "Error creating proc entry");
-    return -ENOMEM;
-    }
-proc_write_entry->read_proc = read_proc ;
-proc_write_entry->write_proc = write_proc;
-printk(KERN_INFO "proc initialized");
+	proc_write_entry = create_proc_entry("operation",0666,NULL);
+	if (!proc_write_entry) {	
+		printk(KERN_INFO "Error creating proc entry");
+		return -ENOMEM;
+	}
+	proc_write_entry->read_proc = read_operation ;
+	proc_write_entry->write_proc = write_operation;
+
+
+	proc_a_entry = create_proc_entry("a",0666,NULL);
+	if (!proc_a_entry) {	
+		printk(KERN_INFO "Error creating proc entry");
+		return -ENOMEM;
+	}
+	proc_a_entry->read_proc = read_a ;
+	proc_a_entry->write_proc = write_a;
+
+
+	proc_b_entry = create_proc_entry("b",0666,NULL);
+	if (!proc_b_entry) {	
+		printk(KERN_INFO "Error creating proc entry");
+		return -ENOMEM;
+	}
+	proc_b_entry->read_proc = read_b ;
+	proc_b_entry->write_proc = write_b;
+
+
+
 
 }
 
-int proc_init (void) {
+int proc_init (void) 
+{
     create_new_proc_entry();
     return 0;
 }
 
-void proc_cleanup(void) {
+void proc_cleanup(void) 
+{
     printk(KERN_INFO " Inside cleanup_module\n");
     remove_proc_entry("proc_entry",NULL);
 }
